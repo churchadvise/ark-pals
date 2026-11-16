@@ -18,7 +18,7 @@ jobs:
     steps:
       - name: Download the Ark Pals project tarball
         run: |
-          curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/octet-stream" -o project.tar.gz "${{ vars.PROJECT_TARBALL_URL }}"
+          curl -L -o project.tar.gz "${{ vars.PROJECT_TARBALL_URL }}"
           mkdir project && tar -xzf project.tar.gz -C project --strip-components=1
           ls project | head
 
