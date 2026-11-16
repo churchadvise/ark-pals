@@ -1,0 +1,91 @@
+name: TestFlight
+
+# Manual trigger: Muse (or Eric) starts a build, the macOS runner does
+# Godot iOS export -> xcodebuild archive (automatic signing via the App
+# Store Connect API key) -> IPA export -> TestFlight upload.
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: "Build number (must increase every upload)"
+        required: true
+        default: "1"
+
+jobs:
+  build:
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - name: Download the Ark Pals project tarball
+        run: |
+          curl -L -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" -H "Accept: application/octet-stream" -o project.tar.gz "${{ vars.PROJECT_TARBALL_URL }}"
+          mkdir project && tar -xzf project.tar.gz -C project --strip-components=1
+          ls project | head
+
+      - name: Install Godot 4.7.2 + export templates
+        run: |
+          curl -L -o godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_macos.universal.zip
+          unzip -q godot.zip
+          curl -L -o templates.tpz https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
+          mkdir -p "$HOME/Library/Application Support/Godot/export_templates/4.7.2.stable"
+          unzip -q templates.tpz -d /tmp/tpz && cp -R /tmp/tpz/templates/* "$HOME/Library/Application Support/Godot/export_templates/4.7.2.stable/"
+          ./Godot.app/Contents/MacOS/Godot --version
+
+      - name: Set build number in the iOS preset
+        run: |
+          sed -i '' 's|application/version="1"|application/version="${{ inputs.build_number }}"|' project/export_presets.cfg
+          grep -n 'application/version' project/export_presets.cfg
+
+      - name: Godot iOS export (Xcode project)
+        run: |
+          mkdir -p ios_out
+          ./Godot.app/Contents/MacOS/Godot --headless --path project --export-release "iOS" "$PWD/ios_out/ArkPals.xcodeproj"
+
+      - name: Write the App Store Connect API key
+        run: |
+          mkdir -p ~/.app-store-connect/private_keys
+          printf "%s" "${{ secrets.ASC_KEY_P8 }}" > ~/.app-store-connect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+
+      - name: Archive (automatic signing via API key)
+        run: |
+          xcodebuild archive \
+            -project ios_out/ArkPals.xcodeproj \
+            -scheme ArkPals \
+            -configuration Release \
+            -archivePath "$PWD/ArkPals.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.app-store-connect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
+            -authenticationKeyID ${{ secrets.ASC_KEY_ID }} \
+            -authenticationKeyIssuerID ${{ secrets.ASC_ISSUER_ID }}
+
+      - name: Export IPA
+        run: |
+          cat > ExportOptions.plist << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store</string>
+            <key>teamID</key><string>YZY5R75XTP</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>uploadSymbols</key><true/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$PWD/ArkPals.xcarchive" \
+            -exportPath "$PWD/ipa" \
+            -exportOptionsPlist ExportOptions.plist \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/.app-store-connect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
+            -authenticationKeyID ${{ secrets.ASC_KEY_ID }} \
+            -authenticationKeyIssuerID ${{ secrets.ASC_ISSUER_ID }}
+
+      - name: Upload to TestFlight
+        run: |
+          xcrun altool --upload-app \
+            --type ios \
+            --file ipa/*.ipa \
+            --apiKey ${{ secrets.ASC_KEY_ID }} \
+            --apiIssuer ${{ secrets.ASC_ISSUER_ID }}
