@@ -1,9 +1,0 @@
-name: Diag
-on:
-  workflow_dispatch:
-jobs:
-  diag:
-    runs-on: macos-latest
-    steps:
-      - name: Say hello
-        run: echo "diag mac ok"; sw_vers; xcodebuild -version || true
