@@ -49,17 +49,14 @@ jobs:
           mkdir -p ~/.app-store-connect/private_keys
           printf "%s" "${{ secrets.ASC_KEY_P8 }}" > ~/.app-store-connect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
 
-      - name: Archive (automatic signing via API key)
+      - name: Archive (unsigned; signing happens at export)
         run: |
           xcodebuild archive \
             -project ios_out/ArkPals.xcodeproj \
             -scheme ArkPals \
             -configuration Release \
             -archivePath "$PWD/ArkPals.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/.app-store-connect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 \
-            -authenticationKeyID ${{ secrets.ASC_KEY_ID }} \
-            -authenticationKeyIssuerID ${{ secrets.ASC_ISSUER_ID }}
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Export IPA
         run: |
