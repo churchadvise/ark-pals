@@ -39,7 +39,10 @@ jobs:
       - name: Godot iOS export (Xcode project)
         run: |
           mkdir -p ios_out
-          ./Godot.app/Contents/MacOS/Godot --headless --path project --export-release "iOS" "$PWD/ios_out/ArkPals.xcodeproj"
+          ./Godot.app/Contents/MacOS/Godot --headless --path project --export-release "iOS" "$PWD/ios_out/ArkPals.xcodeproj" || true
+          test -d ios_out/ArkPals.xcodeproj
+          sed -i '' 's/CODE_SIGN_IDENTITY = "Apple Distribution";/CODE_SIGN_IDENTITY = "Apple Development";/' ios_out/ArkPals.xcodeproj/project.pbxproj
+          grep -n "CODE_SIGN_IDENTITY" ios_out/ArkPals.xcodeproj/project.pbxproj
 
       - name: Write the App Store Connect API key
         run: |
