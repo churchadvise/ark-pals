@@ -46,8 +46,9 @@ jobs:
 
       - name: Write the App Store Connect API key
         run: |
-          mkdir -p ~/.app-store-connect/private_keys
+          mkdir -p ~/.app-store-connect/private_keys ~/.appstoreconnect/private_keys
           printf "%s" "${{ secrets.ASC_KEY_P8 }}" > ~/.app-store-connect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
+          cp ~/.app-store-connect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8 ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.ASC_KEY_ID }}.p8
 
       - name: Archive (unsigned; signing happens at export)
         run: |
