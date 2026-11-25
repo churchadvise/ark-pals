@@ -27,8 +27,8 @@ jobs:
       - name: Download the Ark Pals project tarball (3 parts)
         run: |
           curl -L -o part_00 "${{ vars.PROJECT_TARBALL_URL }}"
-          curl -L -o part_01 "https://drive.usercontent.google.com/download?id=1SUCsLYrLsveETnitdAT1tiYukVUCEPgG&export=download"
-          curl -L -o part_02 "https://drive.usercontent.google.com/download?id=1q9hP7f9mHN31OiL5O-cXzZsIe8YBx7Jw&export=download"
+          curl -L -o part_01 "https://drive.usercontent.google.com/download?id=1SUCsLYrLsveETnitdAT1tiYukVUCEPgG&export=download&confirm=t"
+          curl -L -o part_02 "https://drive.usercontent.google.com/download?id=1q9hP7f9mHN31OiL5O-cXzZsIe8YBx7Jw&export=download&confirm=t"
           cat part_00 part_01 part_02 > project.tar.gz
           echo "${{ inputs.tarball_sha256 }}  project.tar.gz" | shasum -a 256 -c -
           mkdir project && tar -xzf project.tar.gz -C project --strip-components=1
