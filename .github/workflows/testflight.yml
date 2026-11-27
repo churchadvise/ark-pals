@@ -3,9 +3,9 @@ name: TestFlight
 # Manual trigger: Muse (or Eric) starts a build, the macOS runner does
 # Godot iOS export -> xcodebuild archive (automatic signing via the App
 # Store Connect API key) -> IPA export -> TestFlight upload.
-# The project tarball ships in 3 parts on fixed Drive file IDs (single-shot
+# The project tarball ships in 4 parts on fixed Drive file IDs (single-shot
 # Drive uploads die above ~1.3 GB): part_00 replaces the original tarball
-# file (vars.PROJECT_TARBALL_URL), parts 01/02 are their own files, all
+# file (vars.PROJECT_TARBALL_URL), parts 01/02/03 are their own files, all
 # replaced in place each build. Dispatch must pass the full tarball's
 # SHA-256 as tarball_sha256; the runner verifies it after concatenation.
 on:
@@ -24,12 +24,13 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 90
     steps:
-      - name: Download the Ark Pals project tarball (3 parts)
+      - name: Download the Ark Pals project tarball (4 parts)
         run: |
           curl -L -o part_00 "${{ vars.PROJECT_TARBALL_URL }}"
           curl -L -o part_01 "https://drive.usercontent.google.com/download?id=1SUCsLYrLsveETnitdAT1tiYukVUCEPgG&export=download&confirm=t"
           curl -L -o part_02 "https://drive.usercontent.google.com/download?id=1q9hP7f9mHN31OiL5O-cXzZsIe8YBx7Jw&export=download&confirm=t"
-          cat part_00 part_01 part_02 > project.tar.gz
+          curl -L -o part_03 "https://drive.usercontent.google.com/download?id=1-qBiB0xdpoCZH-xTLD84Xw7eMgejrPqr&export=download&confirm=t"
+          cat part_00 part_01 part_02 part_03 > project.tar.gz
           echo "${{ inputs.tarball_sha256 }}  project.tar.gz" | shasum -a 256 -c -
           mkdir project && tar -xzf project.tar.gz -C project --strip-components=1
           ls project | head
